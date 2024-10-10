@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "hull.js": "^1.0.6",
+    "openseadragon": "^3.1.0"
+  }
+}
