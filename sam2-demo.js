@@ -1,16 +1,3 @@
-import {
-    SamModel,
-    AutoProcessor,
-    RawImage,
-    Tensor,
-} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.5";
-
-let processor = null;
-let model = null;
-let imageInput = null;
-let imageProcessed = null;
-let imageEmbeddings = null;
-
 function info(message) {
     const info = document.getElementById("infoPane");
     // Append message paragraph to info element.
@@ -21,105 +8,24 @@ function info(message) {
     info.scrollTop = info.scrollHeight;
 }
 
-async function createProcessor() {
-    info("Loading model and processor...");
-    const model_id = "Xenova/slimsam-77-uniform";
-    model = await SamModel.from_pretrained(model_id, {
-        dtype: "fp32", // or "fp32"
-        device: "webgpu",
-        quantized: true,
-        revision: "boxes"
-    });
-    processor = await AutoProcessor.from_pretrained(model_id);
-    info("Model and processor loaded");
-}
+async function decode(imageURL, boundingBox) {
 
-async function encode(url) {
-    info("Loading image and computing embeddings...");
-    imageInput = await RawImage.fromURL(url);
-
-    // Recompute image embeddings
-    imageProcessed = await processor(imageInput);
-    imageEmbeddings = await model.get_image_embeddings(imageProcessed);
-    info("Image embeddings computed");
-}
-
-async function decode(boundingBox) {
     const originalImageWidth = viewer.world.getItemAt(0).getContentSize().x;
     const originalImageHeight = viewer.world.getItemAt(0).getContentSize().y;
-    
-    // Prepare inputs for decoding
-    const reshaped = imageProcessed.reshaped_input_sizes[0];
 
-    //const box = [(627/1024) * reshaped[1], (388/1252) * reshaped[0], (861/1024) * reshaped[1], (851/1252) * reshaped[0]]
+    // Convert the bounding box according to the processed image size.
+    const ratio = processImageWidth / originalImageWidth;
+    const box = boundingBox.map(x => Math.round(x * ratio));
 
-    const box = [
-        (boundingBox[0] / originalImageWidth) * reshaped[1],
-        (boundingBox[1] / originalImageHeight) * reshaped[0],
-        (boundingBox[2] / originalImageWidth) * reshaped[1],
-        (boundingBox[3] / originalImageHeight) * reshaped[0],
-    ];
-
-    const input_boxes = new Tensor("float32", box, [1, 1, 4]);
-
-    // Generate the mask
-    const { pred_masks, iou_scores } = await model({
-        ...imageEmbeddings,
-        input_boxes,
+    const response = await axios.post('http://127.0.0.1:8000/segment', {
+        image_url: imageURL,
+        box: box,
     });
-
-    // Post-process the mask
-    const masks = await processor.post_process_masks(
-        pred_masks,
-        imageProcessed.original_sizes,
-        imageProcessed.reshaped_input_sizes,
-    );
-
-    const mask = RawImage.fromTensor(masks[0][0]);
-    const scores = iou_scores.data;
-    const polygon = getPolygon(mask, scores);
-    return polygon;
-}
-
-function getPolygon(mask, scores) {
-    const numMasks = scores.length;
-    let bestIndex = 0;
-    for (let i = 1; i < numMasks; ++i) {
-        if (scores[i] > scores[bestIndex]) {
-            bestIndex = i;
-        }
-    }
-
-    const maskData = mask.data;
-    const maskWidth = mask.width;
-    const maskHeight = mask.height;
-    const points = [];
-    for (let y = 0; y < maskHeight; ++y) {
-        for (let x = 0; x < maskWidth; ++x) {
-            const offset = y * maskWidth + x;
-            if (maskData[numMasks * offset + bestIndex] === 1) {
-                points.push([x, y]);
-            }
-        }
-    }
-    // Cluster the mask points
-    const dbscan = new DBSCAN();
-    const clusters = dbscan.run(points, 5, 10);
-    // Find the largest cluster
-    let largestCluster = [];
-    for (const cluster of clusters) {
-        if (cluster.length > largestCluster.length) {
-            largestCluster = cluster;
-        }
-    }
-    const refinedPoints = largestCluster.map(i => points[i]);
-    let polygon = hull(refinedPoints, 10);
-    const originalImageWidth = viewer.world.getItemAt(0).getContentSize().x;
-    polygon = polygon.map(([x, y]) => [
-        (x / processImageWidth) * originalImageWidth,
-        (y / processImageWidth) * originalImageWidth,
-    ]);
-    return polygon;
+    const data = response.data;
+    
+    const segment = data.segment.map(([x, y]) => [x / ratio, y / ratio]);
+    
+    return segment;
 }
 
 async function drawPolygon(selection, polygon) {
@@ -140,16 +46,19 @@ async function drawPolygon(selection, polygon) {
 }
 
 async function segment(selection) {
+    const loader = document.getElementById("loaderPane");
+    loader.style.display = "flex";
     info("Segmenting in bounding box...");
 
     // Get the bounding box of the selection
     const selectorValue = selection.target.selector.value;  // In "xywh=pixel:0,0,100,100" format.
     const xywh = selectorValue.split('=')[1].split(':').pop().split(',').map(Number);
-    const boundingBox = xywh.map((x, i) => i < 2 ? x : x + xywh[i - 2]);
+    const boundingBox = xywh.map((x, i) => i < 2 ? x : x + xywh[i - 2]).flat();
     
-    const polygon = await decode(boundingBox);
+    const polygon = await decode(imageUrl, boundingBox);
     await drawPolygon(selection, polygon);
     info(`Polygon (size ${polygon.length}) created`);
+    loader.style.display = "none";
 }
 
 const imageList = {
@@ -165,6 +74,7 @@ const imageList = {
     'Book Page': 'https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f20',
     'Whistlers_Mother': 'https://iiif.io/api/image/3.0/example/reference/329817fc8a251a01c393f517d8a17d87-Whistlers_Mother',
     'Old train photo': 'https://images.prov.vic.gov.au/loris/2164%2F1297%2F05%2Fimages%2F1%2Ffiles%2F12800-00001-000170-280.tif',
+    'Gichi Nala': 'https://heidicon.ub.uni-heidelberg.de/iiif/2/23736792%3A960606',
 };
 
 let imageBase;
@@ -199,8 +109,3 @@ const anno = OpenSeadragon.Annotorious(viewer, {
 anno.on('createSelection', function(selection) {
     segment(selection);
 });
-
-await createProcessor();
-await encode(imageUrl);
-info("Ready!");
-

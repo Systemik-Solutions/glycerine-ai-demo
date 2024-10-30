@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "dobbyscan": "^2.0.0",
     "hull.js": "^1.0.6",
     "openseadragon": "^3.1.0"
   }

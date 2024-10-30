@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAM Web Demo</title>
+    <title>Segmentation Demo</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.14/dist/annotorious.min.css">
     <style>
         body {
@@ -44,23 +44,74 @@
             overflow-y: auto;
         }
 
+        #toolPane {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        #loaderPane {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            top: 0;
+            left: 0;
+            justify-content: center;
+            align-items: center;
+        }
+
         .a9s-annotation .a9s-inner, .a9s-selection .a9s-inner {
             stroke: #fff000;
             stroke-width: 2px;
             fill: transparent;
         }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        } 
     </style>
 </head>
 <body>
     <div id="viewer">
         <div id="osdContainer"></div>
-        <div id="infoPane"></div>
+        <div id="infoPane">
+            
+        </div>
+        <div id="toolPane">
+            <button id="segAllFS">Segment All</button>
+        </div>
+        <div id="loaderPane">
+            <span class="loader"></span>
+        </div>
     </div>
     
-    <script src="node_modules/hull.js/dist/hull.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/density-clustering@1.3.0/lib/DBSCAN.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="node_modules/openseadragon/build/openseadragon/openseadragon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.14/dist/openseadragon-annotorious.min.js"></script>
-    <script src="sam-web-demo.js" type="module"></script>
+    <script src="segmentation-demo.js"></script>
 </body>
 </html>
