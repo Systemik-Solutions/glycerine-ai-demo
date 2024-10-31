@@ -17,7 +17,7 @@ async function decode(imageURL, boundingBox) {
     const ratio = processImageWidth / originalImageWidth;
     const box = boundingBox.map(x => Math.round(x * ratio));
 
-    const response = await axios.post('http://127.0.0.1:8000/segment', {
+    const response = await axios.post(`${apiBaseUrl}/segment`, {
         image_url: imageURL,
         box: box,
     });
@@ -60,6 +60,8 @@ async function segment(selection) {
     info(`Polygon (size ${polygon.length}) created`);
     loader.style.display = "none";
 }
+
+const apiBaseUrl = 'http://ec2-13-210-199-164.ap-southeast-2.compute.amazonaws.com:8000';
 
 const imageList = {
     'Buddha Year 5': 'https://iaw-image-server.ardc-hdcl-sia-iaw.cloud.edu.au/images/iiif/01HM54MGYC39W9MZ32YD4GJ59D',

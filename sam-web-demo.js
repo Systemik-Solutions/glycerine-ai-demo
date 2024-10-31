@@ -102,18 +102,18 @@ function getPolygon(mask, scores) {
             }
         }
     }
-    // Cluster the mask points
-    const dbscan = new DBSCAN();
-    const clusters = dbscan.run(points, 5, 10);
-    // Find the largest cluster
-    let largestCluster = [];
-    for (const cluster of clusters) {
-        if (cluster.length > largestCluster.length) {
-            largestCluster = cluster;
-        }
-    }
-    const refinedPoints = largestCluster.map(i => points[i]);
-    let polygon = hull(refinedPoints, 10);
+    // // Cluster the mask points
+    // const dbscan = new DBSCAN();
+    // const clusters = dbscan.run(points, 5, 10);
+    // // Find the largest cluster
+    // let largestCluster = [];
+    // for (const cluster of clusters) {
+    //     if (cluster.length > largestCluster.length) {
+    //         largestCluster = cluster;
+    //     }
+    // }
+    // const refinedPoints = largestCluster.map(i => points[i]);
+    let polygon = hull(points, 10);
     const originalImageWidth = viewer.world.getItemAt(0).getContentSize().x;
     polygon = polygon.map(([x, y]) => [
         (x / processImageWidth) * originalImageWidth,

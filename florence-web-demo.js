@@ -326,7 +326,7 @@ const imageParam = urlParams.get('image');
 if (imageParam) {
     imageBase = imageParam;
 } else {
-    imageBase = imageList['Old train photo'];
+    imageBase = imageList['Buddha Year 5'];
 }
 
 const annoDescriptions = {};

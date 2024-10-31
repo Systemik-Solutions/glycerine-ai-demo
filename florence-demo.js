@@ -17,7 +17,7 @@ async function decode(imageURL, boundingBox) {
     const ratio = processImageWidth / originalImageWidth;
     const box = boundingBox.map(x => Math.round(x * ratio));
 
-    const response = await axios.post('http://127.0.0.1:8000/florence/segmentation-description', {
+    const response = await axios.post(`${apiBaseUrl}/florence/segmentation-description`, {
         image_url: imageURL,
         box: box,
     });
@@ -81,6 +81,8 @@ async function segment(selection) {
     info(`Description: ${result.description}`);
     loader.style.display = "none";
 }
+
+const apiBaseUrl = 'http://ec2-13-210-199-164.ap-southeast-2.compute.amazonaws.com:8000';
 
 const imageList = {
     'Buddha Year 5': 'https://iaw-image-server.ardc-hdcl-sia-iaw.cloud.edu.au/images/iiif/01HM54MGYC39W9MZ32YD4GJ59D',
@@ -172,7 +174,7 @@ segAllBtn.addEventListener('click', async function() {
     // Convert the bounding box according to the processed image size.
     const ratio = processImageWidth / originalImageWidth;
 
-    const response = await axios.post('http://127.0.0.1:8000/florence/segmentation-description-all', {
+    const response = await axios.post(`${apiBaseUrl}/florence/segmentation-description-all`, {
         image_url: imageUrl,
     });
     const data = response.data;
@@ -205,7 +207,7 @@ segAllFSBtn.addEventListener('click', async function() {
     // Convert the bounding box according to the processed image size.
     const ratio = processImageWidth / originalImageWidth;
 
-    const response = await axios.post('http://127.0.0.1:8000/flosam', {
+    const response = await axios.post(`${apiBaseUrl}/flosam/seg-cap-all`, {
         image_url: imageUrl,
     });
     const data = response.data;
